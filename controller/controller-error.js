@@ -7,7 +7,6 @@ class ControllerError extends Error {
 		return {
 			INVALID_CONTROLLER: 1
 		};
-
 	}
 
 	constructor(err) {
