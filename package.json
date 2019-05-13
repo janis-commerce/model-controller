@@ -1,5 +1,5 @@
 {
-  "name": "model-controller",
+  "name": "@janiscommerce/model-controller",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -30,5 +30,8 @@
     "mock-require": "^3.0.3",
     "nyc": "^14.1.0",
     "sinon": "^7.3.2"
+  },
+  "directories": {
+    "test": "tests"
   }
 }
