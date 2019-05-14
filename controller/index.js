@@ -40,6 +40,10 @@ class Controller {
 		return ControllerClass;
 	}
 
+	static getInstance(controllerName) {
+		return new (this.get(controllerName))();
+	}
+
 }
 
 module.exports = Controller;

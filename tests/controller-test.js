@@ -55,4 +55,20 @@ describe('Controller', function() {
 		assert.deepEqual(mockClass, gettedClass);
 	});
 
+	it('should return an instance when found by ModulesPath and require works', function() {
+
+		sandbox.stub(ModulesPath, 'get')
+			.returns('path/to/foo');
+
+		const mockClass = class Foo {
+			bar() {}
+		};
+
+		mockRequire('path/to/foo', mockClass);
+
+		const fooInstance = Controller.getInstance('foo');
+
+		assert(fooInstance instanceof mockClass);
+	});
+
 });

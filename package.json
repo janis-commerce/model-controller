@@ -1,6 +1,6 @@
 {
   "name": "@janiscommerce/model-controller",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,7 @@
   "homepage": "https://github.com/janis-commerce/model-controller#readme",
   "dependencies": {
     "@janiscommerce/logger": "^1.0.2",
-    "@janiscommerce/modules-path": "^1.0.0"
+    "@janiscommerce/modules-path": "^1.1.0"
   },
   "devDependencies": {
     "eslint": "^5.16.0",
