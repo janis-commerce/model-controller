@@ -1,6 +1,6 @@
 # Model Controller
 
-The `model-controller` module allows you to get a controller/model class or instance easily
+The `model-controller` module allows you to get a controller/model class or instance easily.
 
 ## Installation
 

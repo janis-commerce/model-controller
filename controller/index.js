@@ -1,9 +1,12 @@
 'use strict';
 
-const logger = require('@janiscommerce/logger');
 const ModulesPath = require('@janiscommerce/modules-path');
 
 const ControllerError = require('./controller-error');
+
+const Utils = require('./../utils');
+
+const Model = require('./../model');
 
 class Controller {
 
@@ -16,32 +19,26 @@ class Controller {
 		const modulePath = ModulesPath.get(this.folder, controllerName);
 
 		if(!modulePath)
-			throw new ControllerError(`Invalid Controller ${controllerName}`, ControllerError.INVALID_CONTROLLER);
+			throw new ControllerError(`Controller ${controllerName} class not found`, ControllerError.codes.INVALID_CONTROLLER);
 
-		let ControllerClass;
+		const controllerClass = Utils.catchRequire(modulePath);
 
-		try {
+		if(!controllerClass)
+			throw new ControllerError(`Invalid Controller ${controllerName}`, ControllerError.codes.INVALID_CONTROLLER);
 
-			/* eslint-disable global-require, import/no-dynamic-require */
-
-			ControllerClass = require(modulePath);
-
-			/* eslint-enable */
-
-		} catch(e) {
-
-			if(e instanceof ReferenceError || e instanceof TypeError || e instanceof SyntaxError || e instanceof RangeError
-				|| e.code !== 'MODULE_NOT_FOUND' || !(~e.message.indexOf(modulePath)))
-				logger.error('Module', e);
-
-			throw new ControllerError(`Invalid Controller ${controllerName}`, ControllerError.INVALID_CONTROLLER);
-		}
-
-		return ControllerClass;
+		return controllerClass;
 	}
 
 	static getInstance(controllerName) {
 		return new (this.get(controllerName))();
+	}
+
+	getModel() {
+
+		if(!this._modelInstance)
+			this._modelInstance = Model.getInstance(this.constructor.name);
+
+		return this._modelInstance;
 	}
 
 }

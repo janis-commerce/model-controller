@@ -1,11 +1,11 @@
 'use strict';
 
-class ControllerError extends Error {
+class ModelError extends Error {
 
 	static get codes() {
 
 		return {
-			INVALID_CONTROLLER: 1
+			INVALID_MODEL: 1
 		};
 	}
 
@@ -13,8 +13,8 @@ class ControllerError extends Error {
 		super(err);
 		this.message = err.message || err;
 		this.code = code;
-		this.name = 'ControllerError';
+		this.name = 'ModelError';
 	}
 }
 
-module.exports = ControllerError;
+module.exports = ModelError;

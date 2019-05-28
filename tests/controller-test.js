@@ -7,68 +7,115 @@ const mockRequire = require('mock-require');
 const assert = require('assert');
 const sandbox = require('sinon').createSandbox();
 
-const { Controller } = require('./../index');
+const { Controller, Model } = require('./../index');
 const ControllerError = require('./../controller/controller-error');
 
 /* eslint-disable prefer-arrow-callback */
 
 describe('Controller', function() {
 
+	const FooController = class FooController extends Controller {};
+	const FooModel = class FooModel extends Model {};
+
+	before(() => {
+		mockRequire('path/to/foo-controller', FooController);
+		mockRequire('path/to/foo-model', FooModel);
+	});
+
 	afterEach(() => {
 		sandbox.restore();
+	});
+
+	after(() => {
 		mockRequire.stopAll();
 	});
+
+	const testThrows = (controllerName, code) => {
+		assert.throws(() => {
+			Controller.get(controllerName);
+		}, {
+			name: 'ControllerError',
+			code
+		});
+	};
 
 	it('should throws when ModulesPath not found the file', function() {
 
 		sandbox.stub(ModulesPath, 'get')
 			.returns(false);
 
-		assert.throws(() => {
-			Controller.get('foo');
-		}, ControllerError);
+		testThrows('foo', ControllerError.codes.INVALID_CONTROLLER);
 	});
 
-	it('should throws when ModulesPath found the file, buu require not', function() {
+	it('should throws when ModulesPath found the file, but require fails', function() {
 
 		sandbox.stub(ModulesPath, 'get')
-			.returns('path/to/foo');
+			.returns('path/to/bar');
 
-		assert.throws(() => {
-			Controller.get('foo');
-		}, ControllerError);
+		testThrows('bar', ControllerError.codes.INVALID_CONTROLLER);
 	});
 
 	it('should return class when found by ModulesPath and require works', function() {
 
 		sandbox.stub(ModulesPath, 'get')
-			.returns('path/to/foo');
-
-		const mockClass = class foo {
-			bar() {}
-		};
-
-		mockRequire('path/to/foo', mockClass);
+			.returns('path/to/foo-controller');
 
 		const gettedClass = Controller.get('foo');
 
-		assert.deepEqual(mockClass, gettedClass);
+		assert.deepEqual(FooController, gettedClass);
 	});
 
 	it('should return an instance when found by ModulesPath and require works', function() {
 
 		sandbox.stub(ModulesPath, 'get')
-			.returns('path/to/foo');
+			.returns('path/to/foo-controller');
 
-		const mockClass = class Foo {
-			bar() {}
-		};
+		const foo = Controller.getInstance('FooController');
 
-		mockRequire('path/to/foo', mockClass);
-
-		const fooInstance = Controller.getInstance('foo');
-
-		assert(fooInstance instanceof mockClass);
+		assert(foo instanceof FooController);
 	});
 
+	it('should return a model instance from a controller instance', function() {
+
+		sandbox.stub(ModulesPath, 'get')
+			.returns('path/to/foo-controller');
+
+		const fooController = Controller.getInstance('FooController');
+
+		assert(fooController instanceof FooController);
+
+		sandbox.restore();
+
+		sandbox.stub(ModulesPath, 'get')
+			.returns('path/to/foo-model');
+
+		const fooModel = fooController.getModel();
+
+		assert(fooModel instanceof FooModel);
+	});
+
+	it('should cache model instance in the controller instance', function() {
+
+		sandbox.stub(ModulesPath, 'get')
+			.returns('path/to/foo-controller');
+
+		const fooController = Controller.getInstance('FooController');
+
+		sandbox.restore();
+
+		sandbox.stub(ModulesPath, 'get')
+			.returns('path/to/foo-model');
+
+		const spy = sandbox.spy(Model, 'getInstance');
+
+		const fooModel = fooController.getModel();
+
+		sandbox.assert.calledOnce(spy);
+
+		const sameFooModel = fooController.getModel();
+
+		sandbox.assert.calledOnce(spy);
+
+		assert.deepEqual(fooModel, sameFooModel);
+	});
 });
