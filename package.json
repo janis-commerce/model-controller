@@ -6,7 +6,8 @@
   "scripts": {
     "test": "export TEST_ENV=true; mocha --exit -R nyan --recursive tests/",
     "watch-test": "export TEST_ENV=true; mocha --exit -R nyan -w --recursive",
-    "coverage": "nyc npm test"
+    "coverage": "nyc npm test",
+    "coveralls": "nyc report --reporter=lcovonly | coveralls"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
     "@janiscommerce/modules-path": "^1.1.0"
   },
   "devDependencies": {
+    "coveralls": "^3.0.3",
     "eslint": "^5.16.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.14.0",

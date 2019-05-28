@@ -1,4 +1,6 @@
 # Model Controller
+[![Build Status](https://travis-ci.org/janis-commerce/model-controller.svg?branch=master)](https://travis-ci.org/janis-commerce/model-controller)
+[![Coverage Status](https://coveralls.io/repos/github/janis-commerce/model-controller/badge.svg?branch=master)](https://coveralls.io/github/janis-commerce/model-controller?branch=master)
 
 The `model-controller` module allows you to get a controller/model class or instance easily.
 The module will search recursively the files in your root path inside the folders `controllers/**` and `models/**`.
