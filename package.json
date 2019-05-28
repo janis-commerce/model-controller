@@ -7,7 +7,7 @@
     "test": "export TEST_ENV=true; mocha --exit -R nyan --recursive tests/",
     "watch-test": "export TEST_ENV=true; mocha --exit -R nyan -w --recursive",
     "coverage": "nyc npm test",
-    "coveralls": "nyc report --reporter=lcovonly | coveralls"
+    "coveralls": "nyc report --reporter=lcovonly --exit | coveralls"
   },
   "repository": {
     "type": "git",
