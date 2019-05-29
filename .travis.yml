@@ -2,6 +2,10 @@ language: node_js
 node_js:
   - "lts/*"
 cache: npm
+script:
+  - |
+    # Run test script
+    npm run test-ci
 after_script:
   - |
     # Upload coverage to coveralls

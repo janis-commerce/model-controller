@@ -1,5 +1,6 @@
 {
 	"exclude": [
+		"coverage",
 		".eslintrc.js"
 	],
 	"cache": true,
