@@ -41,6 +41,57 @@ class Controller {
 		return this._modelInstance;
 	}
 
+	/**
+	 * Get database data
+	 *
+	 * @param {object} params The parameters
+	 * @return {Promise<mixed>} Object if single, array of object if no change keys, object with objects if change keys, null if no results
+	 */
+	async get(params = {}) {
+
+		const items = await this
+			.getModel()
+			.get(params);
+
+		const results = await this.prepareGetResults(items, params);
+
+		return results;
+	}
+
+	async prepareGetResults(items, params) {
+
+		if(typeof items === 'undefined')
+			return null;
+
+		const wasObject = !Array.isArray(items);
+
+		if(wasObject)
+			items = [items];
+		else if(!items.length)
+			return [];
+
+		const indexes = {};
+		const ids = [];
+
+		items.forEach((item, index) => {
+
+			if(this.formatGet)
+				this.formatGet(item);
+
+			if(this.afterGet && item.id) {
+				indexes[item.id] = index;
+				ids.push(item.id);
+			}
+		});
+
+		if(this.afterGet)
+			await this.afterGet(items, indexes, ids, params);
+
+		if(wasObject)
+			return items[0];
+
+		return params.changeKeys ? Utils.changeKeys(items, params.changeKeys) : items;
+	}
 }
 
 module.exports = Controller;

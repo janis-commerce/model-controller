@@ -2,6 +2,10 @@
 
 const ModulesPath = require('@janiscommerce/modules-path');
 
+const DatabaseDispatcher = require('@janiscommerce/database-dispatcher');
+
+const dispatcher = new DatabaseDispatcher();
+
 const ModelError = require('./model-error');
 
 const Utils = require('./../utils');
@@ -29,6 +33,14 @@ class Model {
 
 	static getInstance(modelName) {
 		return new (this.get(modelName))();
+	}
+
+	get db() {
+		return dispatcher.getDatabase(this.databaseKey || '_default');
+	}
+
+	async get(params = {}) {
+		return this.db.get(params);
 	}
 
 }
