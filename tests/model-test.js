@@ -7,8 +7,8 @@ const mockRequire = require('mock-require');
 const assert = require('assert');
 const sandbox = require('sinon').createSandbox();
 
-const { Model } = require('./../index');
-const ModelError = require('./../model/model-error');
+const { Model } = require('..'); // al index
+const ModelError = require('./../lib/model/model-error');
 
 /* eslint-disable prefer-arrow-callback */
 

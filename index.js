@@ -1,7 +1,6 @@
 'use strict';
 
-const Controller = require('./controller');
-const Model = require('./model');
+const { Controller, Model } = require('./lib');
 
 module.exports = {
 	Controller,

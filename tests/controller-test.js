@@ -7,8 +7,8 @@ const mockRequire = require('mock-require');
 const assert = require('assert');
 const sandbox = require('sinon').createSandbox();
 
-const { Controller, Model } = require('./../index');
-const ControllerError = require('./../controller/controller-error');
+const { Controller, Model } = require('..'); // al index
+const ControllerError = require('../lib/controller/controller-error');
 
 /* eslint-disable prefer-arrow-callback */
 
