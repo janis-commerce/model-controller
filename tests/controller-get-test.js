@@ -15,9 +15,6 @@ describe('Controller', function() {
 	const FooController = class Foo extends Controller {};
 	const fooController = new FooController();
 
-	fooController.formatGet = () => {};
-	fooController.afterGet = () => {};
-
 	const FooModel = class Foo extends Model {};
 	const fooModel = new FooModel();
 
@@ -32,6 +29,10 @@ describe('Controller', function() {
 	let spyChangeKeys;
 
 	beforeEach(() => {
+
+		fooController.formatGet = () => {};
+		fooController.afterGet = () => {};
+
 		stubModelGet = sandbox.stub(FooModel.prototype, 'get');
 
 		sandbox.stub(fooController, 'getModel')
@@ -80,7 +81,7 @@ describe('Controller', function() {
 			assert.deepEqual(result, []);
 		});
 
-		it('should prepare results if model get passing the params', async function() {
+		it('should prepare results passing the params if model get returns', async function() {
 
 			stubModelGet.returns([{ fooItem: 2 }]);
 
@@ -92,6 +93,38 @@ describe('Controller', function() {
 			sandbox.assert.calledWithExactly(stubModelGet, { fooParam: 1 });
 
 			assert.deepEqual(result, [{ fooItem: 2 }]);
+		});
+
+		it('should prepare results passing the params if model get returns without \'formatGet\' method present', async function() {
+
+			delete fooController.formatGet;
+
+			stubModelGet.returns([{ fooItem: 88 }]);
+
+			const result = await fooController.get({
+				fooParam: 1
+			});
+
+			sandbox.assert.calledOnce(stubModelGet);
+			sandbox.assert.calledWithExactly(stubModelGet, { fooParam: 1 });
+
+			assert.deepEqual(result, [{ fooItem: 88 }]);
+		});
+
+		it('should prepare results passing the params if model get returns without \'afterGet\' method present', async function() {
+
+			delete fooController.afterGet;
+
+			stubModelGet.returns([{ fooItem: 7787 }]);
+
+			const result = await fooController.get({
+				fooParam: 1
+			});
+
+			sandbox.assert.calledOnce(stubModelGet);
+			sandbox.assert.calledWithExactly(stubModelGet, { fooParam: 1 });
+
+			assert.deepEqual(result, [{ fooItem: 7787 }]);
 		});
 
 		it('should admit object result from model', async function() {
@@ -148,7 +181,7 @@ describe('Controller', function() {
 			});
 		});
 
-		it('should call controller \'formatGet\' with each item if \'formatGet\' method exists', async function() {
+		it('should call controller \'formatGet\' with each item', async function() {
 
 			stubFormatGet.callsFake(({ ...item }) => {
 				item.added = 123;
@@ -172,37 +205,34 @@ describe('Controller', function() {
 			]);
 		});
 
-		context('when \'afterGet\' method exists', function() {
+		it('should call controller \'afterGet\' with all items', async function() {
 
-			it('should call controller \'afterGet\' with all items', async function() {
+			stubModelGet.returns([{ foo: 1 }, { bar: 2 }]);
 
-				stubModelGet.returns([{ foo: 1 }, { bar: 2 }]);
+			const result = await fooController.get();
 
-				const result = await fooController.get();
+			sandbox.assert.calledOnce(stubModelGet);
+			sandbox.assert.calledWithExactly(stubModelGet, {});
 
-				sandbox.assert.calledOnce(stubModelGet);
-				sandbox.assert.calledWithExactly(stubModelGet, {});
+			sandbox.assert.calledOnce(stubAfterGet);
+			sandbox.assert.calledWithExactly(stubAfterGet, [{ foo: 1 }, { bar: 2 }], {}, {}, []);
 
-				sandbox.assert.calledOnce(stubAfterGet);
-				sandbox.assert.calledWithExactly(stubAfterGet, [{ foo: 1 }, { bar: 2 }], {}, {}, []);
+			assert.deepEqual(result, [{ foo: 1 }, { bar: 2 }]);
+		});
 
-				assert.deepEqual(result, [{ foo: 1 }, { bar: 2 }]);
-			});
+		it('should call controller \'afterGet\' with all items, params, indexes and ids', async function() {
 
-			it('should call controller \'afterGet\' with all items, params, indexes and ids', async function() {
+			stubModelGet.returns([{ id: 33, foo: 45 }, { id: 78, bar: 987 }]);
 
-				stubModelGet.returns([{ id: 33, foo: 45 }, { id: 78, bar: 987 }]);
+			const result = await fooController.get({ extraParam: true });
 
-				const result = await fooController.get({ extraParam: true });
+			sandbox.assert.calledOnce(stubModelGet);
+			sandbox.assert.calledWithExactly(stubModelGet, { extraParam: true });
 
-				sandbox.assert.calledOnce(stubModelGet);
-				sandbox.assert.calledWithExactly(stubModelGet, { extraParam: true });
+			sandbox.assert.calledOnce(stubAfterGet);
+			sandbox.assert.calledWithExactly(stubAfterGet, [{ id: 33, foo: 45 }, { id: 78, bar: 987 }], { extraParam: true }, { 33: 0, 78: 1 }, [33, 78]);
 
-				sandbox.assert.calledOnce(stubAfterGet);
-				sandbox.assert.calledWithExactly(stubAfterGet, [{ id: 33, foo: 45 }, { id: 78, bar: 987 }], { extraParam: true }, { 33: 0, 78: 1 }, [33, 78]);
-
-				assert.deepEqual(result, [{ id: 33, foo: 45 }, { id: 78, bar: 987 }]);
-			});
+			assert.deepEqual(result, [{ id: 33, foo: 45 }, { id: 78, bar: 987 }]);
 		});
 
 	});

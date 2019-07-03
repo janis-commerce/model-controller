@@ -110,9 +110,9 @@ describe('Model', function() {
 	it('should throws when ModulesPath found the file, but require fails', function() {
 
 		stubModulesPathGet
-			.returns('path/to/bar');
+			.returns('path/to/unknown-model');
 
-		testGetThrows('bar', ModelError.codes.INVALID_MODEL);
+		testGetThrows('unknown-model', ModelError.codes.INVALID_MODEL);
 	});
 
 	it('should return class when found by ModulesPath and require works', function() {

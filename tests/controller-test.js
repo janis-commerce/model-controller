@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('path');
 const ModulesPath = require('@janiscommerce/modules-path');
 
 const mockRequire = require('mock-require');
@@ -17,22 +18,22 @@ describe('Controller', function() {
 	let stubModulesPathGet;
 
 	const FooController = class Foo extends Controller {};
+	const BarController = class Bar extends Controller {};
 	const FooModel = class Foo extends Model {};
 
 	before(() => {
-		mockRequire('path/to/foo-controller', FooController);
-		mockRequire('path/to/foo-model', FooModel);
+		mockRequire(path.join(Controller.controllersFilePath, 'foo'), FooController);
+		mockRequire(path.join(Controller.controllersFilePath, 'bar'), BarController);
+		mockRequire(path.join(Model.modelsFilePath, 'foo'), FooModel);
 	});
 
 	const stubModulesPathGetReturns = () => {
 		stubModulesPathGet
-			.onFirstCall()
-			.returns('path/to/foo-controller')
-			.onSecondCall()
-			.returns('path/to/foo-model');
+			.callsFake((filePath, name) => path.join(filePath, name));
 	};
 
 	beforeEach(() => {
+		delete process.env.MS_PATH;
 		stubModulesPathGet = sandbox.stub(ModulesPath, 'get');
 	});
 
@@ -82,29 +83,16 @@ describe('Controller', function() {
 
 		stubModulesPathGetReturns();
 
-		const foo = Controller.getInstance('Foo');
+		const foo = Controller.getInstance('foo');
 
 		assert(foo instanceof FooController);
-	});
-
-	it('should return a model instance from a controller instance', function() {
-
-		stubModulesPathGetReturns();
-
-		const fooController = Controller.getInstance('Foo');
-
-		assert(fooController instanceof FooController);
-
-		const fooModel = fooController.getModel();
-
-		assert(fooModel instanceof FooModel);
 	});
 
 	it('should cache model instance in the controller instance', function() {
 
 		stubModulesPathGetReturns();
 
-		const fooController = Controller.getInstance('FooController');
+		const fooController = Controller.getInstance('foo');
 
 		const spy = sandbox.spy(Model, 'getInstance');
 
@@ -121,11 +109,86 @@ describe('Controller', function() {
 		assert.deepEqual(fooModel, sameFooModel);
 	});
 
+	context('when controller has the client injected', function() {
+
+		it('should propagate client when controller ask for another controller', function() {
+
+			stubModulesPathGetReturns();
+
+			const fooController = Controller.getInstance('foo');
+
+			fooController.client = {
+				id: 1,
+				name: 'foo-client'
+			};
+
+			const barController = fooController.getController('bar');
+
+			assert.deepEqual(barController.client, {
+				id: 1,
+				name: 'foo-client'
+			});
+		});
+
+		it('should return a model instance from a controller instance and propagate the client', function() {
+
+			stubModulesPathGetReturns();
+
+			const fooController = Controller.getInstance('foo');
+
+			fooController.client = {
+				id: 1,
+				name: 'foo-client'
+			};
+
+			assert(fooController instanceof FooController);
+
+			const fooModel = fooController.getModel();
+
+			assert(fooModel instanceof FooModel);
+
+			assert.deepEqual(fooModel.client, {
+				id: 1,
+				name: 'foo-client'
+			});
+		});
+	});
+
+	context('when controller hasn\'t the client injected', function() {
+
+		it('shouldn\'t propagate client when controller ask for another controller', function() {
+
+			stubModulesPathGetReturns();
+
+			const fooController = Controller.getInstance('foo');
+
+			assert.deepEqual(fooController.client, undefined);
+
+			const barController = fooController.getController('bar');
+
+			assert.deepEqual(barController.client, undefined);
+		});
+
+		it('should return a model instance from a controller instance', function() {
+
+			stubModulesPathGetReturns();
+
+			const fooController = Controller.getInstance('foo');
+
+			assert(fooController instanceof FooController);
+
+			const fooModel = fooController.getModel();
+
+			assert(fooModel instanceof FooModel);
+		});
+
+	});
+
 	it('should call model \'getTotals\' method', async function() {
 
 		stubModulesPathGetReturns();
 
-		const fooController = Controller.getInstance('FooController');
+		const fooController = Controller.getInstance('foo');
 
 		const stubModelMethod = sandbox.stub(FooModel.prototype, 'getTotals');
 
@@ -141,7 +204,7 @@ describe('Controller', function() {
 
 			stubModulesPathGetReturns();
 
-			const fooController = Controller.getInstance('FooController');
+			const fooController = Controller.getInstance('foo');
 
 			const stubModelMethod = sandbox.stub(FooModel.prototype, method);
 
@@ -160,7 +223,7 @@ describe('Controller', function() {
 
 		stubModulesPathGetReturns();
 
-		const fooController = Controller.getInstance('FooController');
+		const fooController = Controller.getInstance('foo');
 
 		const stubModelMethod = sandbox.stub(FooModel.prototype, 'update');
 
@@ -176,7 +239,7 @@ describe('Controller', function() {
 
 			stubModulesPathGetReturns();
 
-			const fooController = Controller.getInstance('FooController');
+			const fooController = Controller.getInstance('foo');
 
 			const stubModelMethod = sandbox.stub(FooModel.prototype, method);
 
@@ -192,7 +255,7 @@ describe('Controller', function() {
 
 		stubModulesPathGetReturns();
 
-		const fooController = Controller.getInstance('FooController');
+		const fooController = Controller.getInstance('foo');
 
 		const stubModelMethod = sandbox.stub(FooModel.prototype, 'multiRemove');
 
@@ -200,5 +263,17 @@ describe('Controller', function() {
 
 		sandbox.assert.calledOnce(stubModelMethod);
 		sandbox.assert.calledWithExactly(stubModelMethod, { foo: 2 });
+	});
+
+	it('should use env var MS_PATH if exists for getting a Controller', function() {
+
+		stubModulesPathGetReturns();
+
+		process.env.MS_PATH = 'my-extra-path';
+
+		assert.throws(() => Controller.get('foo'));
+
+		sandbox.assert.calledOnce(stubModulesPathGet);
+		sandbox.assert.calledWithExactly(stubModulesPathGet, 'my-extra-path/controllers', 'foo');
 	});
 });
