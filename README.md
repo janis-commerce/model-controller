@@ -7,56 +7,120 @@ The module will search recursively the files in your root path inside the folder
 
 ## Installation
 
-```
+```bash
 npm install @janiscommerce/model-controller
 ```
 
 ## API
 
-### Controller.get(string)
-Example: Controller.get('category');
-This method returns the controller class to use static methods or instance a controller.
+### Controller.get(string) **static**
+- This method returns the controller class to use static methods or instance a controller.
+**Example:** Controller.get('category');
 
-### Controller.getInstance(string)
-Example: Controller.getInstance('category');
-This method returns the instance of a controller class.
+### Controller.getInstance(string) **static**
+- This method returns the instance of a controller class.
+**Example:** Controller.getInstance('category');
 
-### Controller.getModel(string)
-Example: myController.getModel();
-This methods returns a Model Instance from a controller using his name. The method will cache the model to simple return it the next time.
+### Controller.getModel(string) **non-static**
+- This methods returns a Model Instance from a controller using his name. The method will cache the model to simple return it the next time.
+**Example:** myController.getModel();
 
-### Model.get(string)
-Example: Model.get('category');
-This method returns the model class to use static methods or instance a model.
+### Controller.client(any) *setter* **non-static**
+- This methods sets the client in the controller instance.
+**Example:** myController.client = { id: 1 };
+**Example:** myController.client = 1;
+**Example:** myController.client = 'my-client-name';
 
-### Model.getInstance(string)
-Example: Model.getInstance('category');
-This method returns the instance of a model class.
+### Controller.client() *getter* **non-static**
+- This methods returns the client if any
+**Example:** myController.client;
+
+### Controller.getController(string) **non-static**
+- This methods returns an Controller instance. It propagates the client if any.
+**Example:** myController.getController('brand');
+
+### Model.get(string) **static**
+- This method returns the model class to use static methods or instance a model.
+**Example:** Model.get('category');
+
+### Model.getInstance(string) **static**
+- This method returns the instance of a model class.
+**Example:** Model.getInstance('category');
 
 ## Usage
 
+### How to get a `Product` class
 ```js
-const { Model, Controller } = require('@janiscommerce/model-controller');
+const { Controller } = require('@janiscommerce/model-controller');
 
-// To get the Product class from e.g. 'path/to/node/process/controllers/product.js'
-const ProductController = Controller.get('product'); // this returns the product class stored in
+// To get the Product class from e.g. 'path/to/root/controllers/product.js'
+const ProductController = Controller.get('product'); // this returns the product class
+```
 
-// To get a Product instance
-const myProduct = Controller.getInstance('product');
+### How to get a `Product` instance
+```js
+const { Controller } = require('@janiscommerce/model-controller');
 
-// To get a Product Model instance
-const productModel = myProduct.getModel();
-const otherProductModel = myProduct.getModel();
+// To get the Product instance from e.g. 'path/to/root/controllers/product.js'
+const productController = Controller.getInstance('product');
+```
 
-console.log(`'productModel' and 'otherProductModel' are ${productModel === otherProductModel ? 'equal' : 'different'}`);
-// expected output: 'productModel' and 'otherProductModel' are equal
+### How to get a `Product` model instance from a `Product` instance
+```js
+const { Controller } = require('@janiscommerce/model-controller');
 
-// To get the Product Model class from e.g. 'path/to/node/process/models/product.js'
+// To get the Product instance from e.g. 'path/to/root/controllers/product.js'
+const productController = Controller.getInstance('product');
+
+// To get the Product Model class from e.g. 'path/to/root/models/product.js'
+const myProduct = productController.getModel();
+```
+
+### How to get a `Product` model
+
+```js
+const { Model } = require('@janiscommerce/model-controller');
+
+// To get the Product Model class from e.g. 'path/to/root/models/product.js'
 const ProductModel = Model.get('product');
+```
 
-// To get a Product Model instance
-const myProductModel = Model.getInstance('product');
+### How to get a `Product` model instance
 
-console.log(`'productModel' and 'myProductModel' are ${productModel === myProductModel ? 'equal' : 'different'}`);
-// expected output: 'productModel' and 'myProductModel' are different
+```js
+const { Model } = require('@janiscommerce/model-controller');
+
+// To get the Product Model class from e.g. 'path/to/root/models/product.js'
+const productModel = Model.getInstance('product');
+```
+
+### How to handle Client and propagation between controllers and models
+
+```js
+const { Controller } = require('@janiscommerce/model-controller');
+
+const productController = Controller.getInstance('product');
+
+productController.client = {
+	id: 1,
+	name: 'my-client-name',
+	foo: 'bar'
+};
+
+const products = await productController.get(); // get from DB using model + database-dispatcher. see @janiscommerce/database-dispatcher
+
+const categoryController = productController.getController('category');
+
+console.log(categoryController.client);
+
+/** -- Expected output:
+	{
+		id: 1,
+		name: 'my-client-name',
+		foo: 'bar'
+	}
+*/
+
+const categories = await categoryController.get(); // get from DB, should be the same DB than productsController
+
 ```
