@@ -24,8 +24,6 @@ describe('Model', function() {
 	DBDriver.get = () => {};
 
 	let stubDBDriverGet;
-	let stubByKey;
-	let stubByConfig;
 
 	const clientModel = class ClientModel extends Model {};
 
@@ -65,10 +63,10 @@ describe('Model', function() {
 		stubDBDriverGet = sandbox.stub(DBDriver, 'get')
 			.returns([{ foo: 'bar' }]);
 
-		stubByKey = sandbox.stub(DatabaseDispatcher, 'getDatabaseByKey')
+		sandbox.stub(DatabaseDispatcher, 'getDatabaseByKey')
 			.returns(DBDriver);
 
-		stubByConfig = sandbox.stub(DatabaseDispatcher, 'getDatabaseByConfig')
+		sandbox.stub(DatabaseDispatcher, 'getDatabaseByConfig')
 			.returns(DBDriver);
 	});
 
@@ -165,8 +163,8 @@ describe('Model', function() {
 
 			await myCoreModel.get();
 
-			sandbox.assert.calledOnce(stubByKey);
-			sandbox.assert.calledWithExactly(stubByKey, 'core');
+			sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByKey);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByKey, 'core');
 
 			sandbox.assert.calledOnce(stubDBDriverGet);
 			sandbox.assert.calledWithExactly(stubDBDriverGet, myCoreModel, {});
@@ -180,9 +178,9 @@ describe('Model', function() {
 
 			await myClientModel.get();
 
-			// for debug use: stubByConfig.getCall(0).args
-			sandbox.assert.calledOnce(stubByConfig);
-			sandbox.assert.calledWithExactly(stubByConfig, {
+			// for debug use: DatabaseDispatcher.getDatabaseByConfig.getCall(0).args
+			sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByConfig);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByConfig, {
 				host: 'my-host.com',
 				database: 'foo',
 				user: undefined,
@@ -208,9 +206,9 @@ describe('Model', function() {
 
 			await myClientModel.get({ readonly: true, filters: { foo: 'bar' } });
 
-			// for debug use: stubByConfig.getCall(0).args
-			sandbox.assert.calledOnce(stubByConfig);
-			sandbox.assert.calledWithExactly(stubByConfig, {
+			// for debug use: DatabaseDispatcher.getDatabaseByConfig.getCall(0).args
+			sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByConfig);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByConfig, {
 				host: 'my-read-host.com',
 				database: 'foo',
 				user: 'my-username',
@@ -260,9 +258,9 @@ describe('Model', function() {
 
 			await myClientModel.get();
 
-			// for debug use: stubByConfig.getCall(0).args
-			sandbox.assert.calledOnce(stubByConfig);
-			sandbox.assert.calledWithExactly(stubByConfig, {
+			// for debug use: DatabaseDispatcher.getDatabaseByConfig.getCall(0).args
+			sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByConfig);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByConfig, {
 				host: 'the-host',
 				database: 'the-database-name',
 				user: 'the-username',
@@ -285,7 +283,7 @@ describe('Model', function() {
 				dbWritePort: 'port'
 			});
 
-			const spyPrepareFields = sandbox.spy(clientModel, '_prepareClientFields');
+			sandbox.spy(clientModel, '_prepareClientFields');
 
 			const myClientModel = getInstance('client-model');
 
@@ -296,7 +294,7 @@ describe('Model', function() {
 			await myClientModel.get({ filters: { foo: 'bar' } });
 			await myClientModel.get();
 
-			sandbox.assert.calledOnce(spyPrepareFields);
+			sandbox.assert.calledOnce(clientModel._prepareClientFields); // eslint-disable-line
 		});
 	});
 
@@ -306,16 +304,16 @@ describe('Model', function() {
 
 		const myCoreModel = getInstance('core-model');
 
-		const stubDBDriverMethod = sandbox.stub(DBDriver, 'getTotals');
+		sandbox.stub(DBDriver, 'getTotals');
 
 		await myCoreModel.getTotals();
 
-		sandbox.assert.calledOnce(stubByKey);
-		sandbox.assert.calledWithExactly(stubByKey, 'core');
+		sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByKey);
+		sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByKey, 'core');
 
-		// for debug use: stubDBDriverMethod.getCall(0).args
-		sandbox.assert.calledOnce(stubDBDriverMethod);
-		sandbox.assert.calledWithExactly(stubDBDriverMethod, myCoreModel);
+		// for debug use: DBDriver.getTotals.getCall(0).args
+		sandbox.assert.calledOnce(DBDriver.getTotals);
+		sandbox.assert.calledWithExactly(DBDriver.getTotals, myCoreModel);
 	});
 
 	['insert', 'save', 'remove'].forEach(method => {
@@ -326,16 +324,16 @@ describe('Model', function() {
 
 			const myCoreModel = getInstance('core-model');
 
-			const stubDBDriverMethod = sandbox.stub(DBDriver, method);
+			sandbox.stub(DBDriver, method);
 
 			await myCoreModel[method]({ foo: 'bar' });
 
-			sandbox.assert.calledOnce(stubByKey);
-			sandbox.assert.calledWithExactly(stubByKey, 'core');
+			sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByKey);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByKey, 'core');
 
-			// for debug use: stubDBDriverMethod.getCall(0).args
-			sandbox.assert.calledOnce(stubDBDriverMethod);
-			sandbox.assert.calledWithExactly(stubDBDriverMethod, myCoreModel, { foo: 'bar' });
+			// for debug use: DBDriver[method].getCall(0).args
+			sandbox.assert.calledOnce(DBDriver[method]);
+			sandbox.assert.calledWithExactly(DBDriver[method], myCoreModel, { foo: 'bar' });
 		});
 
 	});
@@ -346,16 +344,16 @@ describe('Model', function() {
 
 		const myCoreModel = getInstance('core-model');
 
-		const stubDBDriverMethod = sandbox.stub(DBDriver, 'update');
+		sandbox.stub(DBDriver, 'update');
 
 		await myCoreModel.update({ status: -1 }, { foo: 'bar' });
 
-		sandbox.assert.calledOnce(stubByKey);
-		sandbox.assert.calledWithExactly(stubByKey, 'core');
+		sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByKey);
+		sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByKey, 'core');
 
-		// for debug use: stubDBDriverMethod.getCall(0).args
-		sandbox.assert.calledOnce(stubDBDriverMethod);
-		sandbox.assert.calledWithExactly(stubDBDriverMethod, myCoreModel, { status: -1 }, { foo: 'bar' });
+		// for debug use: DBDriver.update.getCall(0).args
+		sandbox.assert.calledOnce(DBDriver.update);
+		sandbox.assert.calledWithExactly(DBDriver.update, myCoreModel, { status: -1 }, { foo: 'bar' });
 	});
 
 	['multiInsert', 'multiSave'].forEach(method => {
@@ -366,16 +364,16 @@ describe('Model', function() {
 
 			const myCoreModel = getInstance('core-model');
 
-			const stubDBDriverMethod = sandbox.stub(DBDriver, method);
+			sandbox.stub(DBDriver, method);
 
 			await myCoreModel[method]([{ foo: 'bar' }, { foo2: 'bar2' }]);
 
-			sandbox.assert.calledOnce(stubByKey);
-			sandbox.assert.calledWithExactly(stubByKey, 'core');
+			sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByKey);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByKey, 'core');
 
-			// for debug use: stubDBDriverMethod.getCall(0).args
-			sandbox.assert.calledOnce(stubDBDriverMethod);
-			sandbox.assert.calledWithExactly(stubDBDriverMethod, myCoreModel, [{ foo: 'bar' }, { foo2: 'bar2' }]);
+			// for debug use: DBDriver[method].getCall(0).args
+			sandbox.assert.calledOnce(DBDriver[method]);
+			sandbox.assert.calledWithExactly(DBDriver[method], myCoreModel, [{ foo: 'bar' }, { foo2: 'bar2' }]);
 		});
 
 	});
@@ -386,16 +384,16 @@ describe('Model', function() {
 
 		const myCoreModel = getInstance('core-model');
 
-		const stubDBDriverMethod = sandbox.stub(DBDriver, 'multiRemove');
+		sandbox.stub(DBDriver, 'multiRemove');
 
 		await myCoreModel.multiRemove({ foo: 'bar' });
 
-		sandbox.assert.calledOnce(stubByKey);
-		sandbox.assert.calledWithExactly(stubByKey, 'core');
+		sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByKey);
+		sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByKey, 'core');
 
-		// for debug use: stubDBDriverMethod.getCall(0).args
-		sandbox.assert.calledOnce(stubDBDriverMethod);
-		sandbox.assert.calledWithExactly(stubDBDriverMethod, myCoreModel, { foo: 'bar' });
+		// for debug use: DBDriver.multiRemove.getCall(0).args
+		sandbox.assert.calledOnce(DBDriver.multiRemove);
+		sandbox.assert.calledWithExactly(DBDriver.multiRemove, myCoreModel, { foo: 'bar' });
 	});
 
 });
