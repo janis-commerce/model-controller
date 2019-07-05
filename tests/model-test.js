@@ -2,6 +2,7 @@
 
 const ModulesPath = require('@janiscommerce/modules-path');
 const DatabaseDispatcher = require('@janiscommerce/database-dispatcher');
+const Settings = require('@janiscommerce/settings');
 
 const mockRequire = require('mock-require');
 
@@ -10,6 +11,7 @@ const sandbox = require('sinon').createSandbox();
 
 const { Model } = require('..'); // al index
 const ModelError = require('./../lib/model/model-error');
+const ClientFields = require('./../lib/model/client-fields');
 
 /* eslint-disable prefer-arrow-callback */
 
@@ -17,18 +19,16 @@ describe('Model', function() {
 
 	let stubModulesPathGet;
 
-	DatabaseDispatcher.getDatabaseByKey = () => {};
-	DatabaseDispatcher.getDatabaseByConfig = () => {};
-
-	const DBDriver = {};
-	DBDriver.get = () => {};
-
-	let stubDBDriverGet;
-
-	const clientModel = class ClientModel extends Model {};
-
-	const coreModel = class CoreModel extends Model {
-		get databaseKey() { return 'core'; }
+	const DBDriver = {
+		get: () => {},
+		getTotals: () => {},
+		insert: () => {},
+		save: () => {},
+		update: () => {},
+		remove: () => {},
+		multiInsert: () => {},
+		multiSave: () => {},
+		multiRemove: () => {}
 	};
 
 	const client = {
@@ -38,11 +38,17 @@ describe('Model', function() {
 		password: 'the-password',
 		port: 1,
 		dbWriteHost: 'my-host.com',
-		dbWriteName: 'foo',
+		dbWriteDatabase: 'foo',
 		dbReadHost: 'my-read-host.com',
-		dbReadName: 'foo',
+		dbReadDatabase: 'foo',
 		dbReadUser: 'my-username',
-		dbReadPass: 'ultrsecurepassword123456'
+		dbReadPassword: 'ultrsecurepassword123456'
+	};
+
+	const clientModel = class ClientModel extends Model {};
+
+	const coreModel = class CoreModel extends Model {
+		get databaseKey() { return 'core'; }
 	};
 
 	before(() => {
@@ -54,13 +60,12 @@ describe('Model', function() {
 
 		delete process.env.MS_PATH;
 
+		// for internal cache clean...
+		ClientFields._fields = undefined; // eslint-disable-line
+
 		stubModulesPathGet = sandbox.stub(ModulesPath, 'get');
 
-		// to avoid cache
-		clientModel._clientFields = undefined; // eslint-disable-line
-		coreModel._clientFields = undefined; // eslint-disable-line
-
-		stubDBDriverGet = sandbox.stub(DBDriver, 'get')
+		sandbox.stub(DBDriver, 'get')
 			.returns([{ foo: 'bar' }]);
 
 		sandbox.stub(DatabaseDispatcher, 'getDatabaseByKey')
@@ -113,18 +118,6 @@ describe('Model', function() {
 		testGetThrows('unknown-model', ModelError.codes.INVALID_MODEL);
 	});
 
-	it('should return class when found by ModulesPath and require works', function() {
-
-		stubModulesPathGet
-			.returns('path/to/client-model');
-
-		const ClientModel = Model.get('client-model');
-
-		assert.deepEqual(clientModel, ClientModel);
-		sandbox.assert.calledOnce(stubModulesPathGet);
-		sandbox.assert.calledWithExactly(stubModulesPathGet, 'models', 'client-model');
-	});
-
 	it('should use env var MS_PATH if exists for getting a Model', function() {
 
 		process.env.MS_PATH = 'my-extra-path';
@@ -136,6 +129,18 @@ describe('Model', function() {
 
 		sandbox.assert.calledOnce(stubModulesPathGet);
 		sandbox.assert.calledWithExactly(stubModulesPathGet, 'my-extra-path/models', 'client-model');
+	});
+
+	it('should return class when found by ModulesPath and require works', function() {
+
+		stubModulesPathGet
+			.returns('path/to/client-model');
+
+		const ClientModel = Model.get('client-model');
+
+		assert.deepEqual(clientModel, ClientModel);
+		sandbox.assert.calledOnce(stubModulesPathGet);
+		sandbox.assert.calledWithExactly(stubModulesPathGet, 'models', 'client-model');
 	});
 
 	it('should return an instance when found by ModulesPath and require works', function() {
@@ -155,7 +160,7 @@ describe('Model', function() {
 		});
 	});
 
-	context('when client config fields file not found', function() {
+	context('when client fields settings not found', function() {
 
 		it('should call DBDriver get using databaseKey if exists', async function() {
 
@@ -166,8 +171,8 @@ describe('Model', function() {
 			sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByKey);
 			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByKey, 'core');
 
-			sandbox.assert.calledOnce(stubDBDriverGet);
-			sandbox.assert.calledWithExactly(stubDBDriverGet, myCoreModel, {});
+			sandbox.assert.calledOnce(DBDriver.get);
+			sandbox.assert.calledWithExactly(DBDriver.get, myCoreModel, {});
 		});
 
 		it('should call DBDriver get using client config default', async function() {
@@ -184,21 +189,22 @@ describe('Model', function() {
 				host: 'my-host.com',
 				database: 'foo',
 				user: undefined,
-				pass: undefined,
+				password: undefined,
 				port: undefined
 			});
 
-			// for debug use: stubDBDriverGet.getCall(0).args
-			sandbox.assert.calledOnce(stubDBDriverGet);
-			sandbox.assert.calledWithExactly(stubDBDriverGet, myClientModel, {});
+			// for debug use: DBDriver.get.getCall(0).args
+			sandbox.assert.calledOnce(DBDriver.get);
+			sandbox.assert.calledWithExactly(DBDriver.get, myClientModel, {});
 		});
 	});
 
-	context('when client config fields file found but has bad format', function() {
+	context('when client fields settings found but has bad format', function() {
 
-		it('should use default fields for client', async function() {
+		it('should use default fields for client on read DB', async function() {
 
-			mockRequire(clientModel.clientConfigFilePath, ['bad', 'format']);
+			sandbox.stub(Settings, 'get')
+				.returns(['bad', 'format']);
 
 			const myClientModel = getInstance('client-model');
 
@@ -212,20 +218,25 @@ describe('Model', function() {
 				host: 'my-read-host.com',
 				database: 'foo',
 				user: 'my-username',
-				pass: 'ultrsecurepassword123456',
+				password: 'ultrsecurepassword123456',
 				port: undefined
 			});
 
-			// for debug use: stubDBDriverGet.getCall(0).args
-			sandbox.assert.calledOnce(stubDBDriverGet);
-			sandbox.assert.calledWithExactly(stubDBDriverGet, myClientModel, { readonly: true, filters: { foo: 'bar' } });
+			// for debug use: DBDriver.get.getCall(0).args
+			sandbox.assert.calledOnce(DBDriver.get);
+			sandbox.assert.calledWithExactly(DBDriver.get, myClientModel, { readonly: true, filters: { foo: 'bar' } });
+
+			// for debug use: Settings.get.getCall(0).args
+			sandbox.assert.calledOnce(Settings.get);
+			sandbox.assert.calledWithExactly(Settings.get, 'clients');
 		});
 
 		it('should use internal cache for default fields for client', async function() {
 
-			mockRequire(clientModel.clientConfigFilePath, ['bad', 'format']);
+			sandbox.stub(Settings, 'get')
+				.returns(['bad', 'format']);
 
-			const spyPrepareFields = sandbox.spy(clientModel, '_prepareClientFields');
+			sandbox.spy(ClientFields, 'get');
 
 			const myClientModel = getInstance('client-model');
 
@@ -236,21 +247,31 @@ describe('Model', function() {
 			await myClientModel.get({ filters: { foo: 'bar' } });
 			await myClientModel.get();
 
-			sandbox.assert.calledOnce(spyPrepareFields);
+			sandbox.assert.calledOnce(ClientFields.get);
+			sandbox.assert.calledWithExactly(ClientFields.get); // called with undefined!
+
+			// for debug use: Settings.get.getCall(0).args
+			sandbox.assert.calledOnce(Settings.get);
+			sandbox.assert.calledWithExactly(Settings.get, 'clients');
 		});
 	});
 
-	context('when client config fields file found', function() {
+	context('when client fields settings found', function() {
 
-		it('should use client db config data', async function() {
+		it('should use client db config data for write DB', async function() {
 
-			mockRequire(clientModel.clientConfigFilePath, {
-				dbWriteHost: 'host',
-				dbWriteName: 'database',
-				dbWriteUser: 'username',
-				dbWritePass: 'password',
-				dbWritePort: 'port'
-			});
+			sandbox.stub(Settings, 'get')
+				.returns({
+					fields: {
+						write: {
+							host: 'host',
+							database: 'database',
+							user: 'username',
+							password: 'password',
+							port: 'port'
+						}
+					}
+				});
 
 			const myClientModel = getInstance('client-model');
 
@@ -264,26 +285,73 @@ describe('Model', function() {
 				host: 'the-host',
 				database: 'the-database-name',
 				user: 'the-username',
-				pass: 'the-password',
+				password: 'the-password',
 				port: 1
 			});
 
-			// for debug use: stubDBDriverGet.getCall(0).args
-			sandbox.assert.calledOnce(stubDBDriverGet);
-			sandbox.assert.calledWithExactly(stubDBDriverGet, myClientModel, {});
+			// for debug use: DBDriver.get.getCall(0).args
+			sandbox.assert.calledOnce(DBDriver.get);
+			sandbox.assert.calledWithExactly(DBDriver.get, myClientModel, {});
+
+			// for debug use: Settings.get.getCall(0).args
+			sandbox.assert.calledOnce(Settings.get);
+			sandbox.assert.calledWithExactly(Settings.get, 'clients');
 		});
 
-		it('should use internal cache for config field fields for client', async function() {
+		it('should use client db config data for read DB', async function() {
 
-			mockRequire(clientModel.clientConfigFilePath, {
-				dbWriteHost: 'host',
-				dbWriteName: 'database',
-				dbWriteUser: 'username',
-				dbWritePass: 'password',
-				dbWritePort: 'port'
+			sandbox.stub(Settings, 'get')
+				.returns({
+					fields: {
+						read: {
+							host: 'host',
+							database: 'database',
+							user: 'username',
+							password: 'password',
+							port: 'port'
+						}
+					}
+				});
+
+			const myClientModel = getInstance('client-model');
+
+			myClientModel.client = client;
+
+			await myClientModel.get({ readonly: true });
+
+			// for debug use: DatabaseDispatcher.getDatabaseByConfig.getCall(0).args
+			sandbox.assert.calledOnce(DatabaseDispatcher.getDatabaseByConfig);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByConfig, {
+				host: 'the-host',
+				database: 'the-database-name',
+				user: 'the-username',
+				password: 'the-password',
+				port: 1
 			});
 
-			sandbox.spy(clientModel, '_prepareClientFields');
+			// for debug use: DBDriver.get.getCall(0).args
+			sandbox.assert.calledOnce(DBDriver.get);
+			sandbox.assert.calledWithExactly(DBDriver.get, myClientModel, { readonly: true });
+
+			// for debug use: Settings.get.getCall(0).args
+			sandbox.assert.calledOnce(Settings.get);
+			sandbox.assert.calledWithExactly(Settings.get, 'clients');
+		});
+
+		it('should use internal cache for settings fields for client', async function() {
+
+			sandbox.stub(Settings, 'get')
+				.returns({
+					fields: {
+						write: {
+							host: 'host',
+							database: 'database',
+							user: 'username',
+							password: 'password',
+							port: 'port'
+						}
+					}
+				});
 
 			const myClientModel = getInstance('client-model');
 
@@ -294,13 +362,38 @@ describe('Model', function() {
 			await myClientModel.get({ filters: { foo: 'bar' } });
 			await myClientModel.get();
 
-			sandbox.assert.calledOnce(clientModel._prepareClientFields); // eslint-disable-line
+			const readConfig = {
+				host: 'my-read-host.com',
+				database: 'foo',
+				user: 'my-username',
+				password: 'ultrsecurepassword123456',
+				port: undefined
+			};
+
+			const writeConfig = {
+				host: 'the-host',
+				database: 'the-database-name',
+				user: 'the-username',
+				password: 'the-password',
+				port: 1
+			};
+
+			// for debug use: DatabaseDispatcher.getDatabaseByConfig.getCall(0).args
+			sandbox.assert.callCount(DatabaseDispatcher.getDatabaseByConfig, 4);
+
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByConfig.getCall(0), readConfig);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByConfig.getCall(1), readConfig);
+
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByConfig.getCall(2), writeConfig);
+			sandbox.assert.calledWithExactly(DatabaseDispatcher.getDatabaseByConfig.getCall(3), writeConfig);
+
+			// for debug use: Settings.get.getCall(0).args
+			sandbox.assert.calledOnce(Settings.get);
+			sandbox.assert.calledWithExactly(Settings.get, 'clients');
 		});
 	});
 
 	it('should call DBDriver getTotals method passing the model', async function() {
-
-		DBDriver.getTotals = () => {};
 
 		const myCoreModel = getInstance('core-model');
 
@@ -320,8 +413,6 @@ describe('Model', function() {
 
 		it(`should call DBDriver ${method} method passing the model and the item received`, async function() {
 
-			DBDriver[method] = () => {};
-
 			const myCoreModel = getInstance('core-model');
 
 			sandbox.stub(DBDriver, method);
@@ -339,8 +430,6 @@ describe('Model', function() {
 	});
 
 	it('should call DBDriver update method passing the model and the values and filter received', async function() {
-
-		DBDriver.update = () => {};
 
 		const myCoreModel = getInstance('core-model');
 
@@ -360,8 +449,6 @@ describe('Model', function() {
 
 		it(`should call DBDriver ${method} method passing the model and the items received`, async function() {
 
-			DBDriver[method] = () => {};
-
 			const myCoreModel = getInstance('core-model');
 
 			sandbox.stub(DBDriver, method);
@@ -380,8 +467,6 @@ describe('Model', function() {
 
 	it('should call DBDriver multiRemove method passing the model and the filter received', async function() {
 
-		DBDriver.multiRemove = () => {};
-
 		const myCoreModel = getInstance('core-model');
 
 		sandbox.stub(DBDriver, 'multiRemove');
@@ -394,6 +479,27 @@ describe('Model', function() {
 		// for debug use: DBDriver.multiRemove.getCall(0).args
 		sandbox.assert.calledOnce(DBDriver.multiRemove);
 		sandbox.assert.calledWithExactly(DBDriver.multiRemove, myCoreModel, { foo: 'bar' });
+	});
+
+	it('should cache ClientFields when request from different models', async function() {
+
+		sandbox.stub(Settings, 'get');
+
+		const myClientModel = getInstance('client-model');
+
+		myClientModel.client = client;
+
+		await myClientModel.get();
+
+		const otherClientModel = getInstance('client-model');
+
+		otherClientModel.client = client;
+
+		await otherClientModel.get();
+
+		// for debug use: Settings.get.getCall(0).args
+		sandbox.assert.calledOnce(Settings.get);
+		sandbox.assert.calledWithExactly(Settings.get, 'clients');
 	});
 
 });

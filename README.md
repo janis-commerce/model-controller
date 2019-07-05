@@ -11,6 +11,95 @@ The module will search recursively the files in your root path inside the folder
 npm install @janiscommerce/model-controller
 ```
 
+## Client injection
+The client injection is useful when you have a dedicated database per client.
+Using the public setter `client`, the client will be stored in the `controller` instance.
+All the controllers and models getted using that controller will have the client injected.
+
+## Database Dispatcher
+The `Model` uses [Database Dispatcher](https://www.npmjs.com/package/@janiscommerce/database-dispatcher) for getting the correct **DBDriver** for a `Model`.
+
+### Database connection by databaseKey
+If you have the connection settings you should add a `databaseKey` getter in you `Model`.
+
+```js
+class MyModel extends Model {
+
+	get databaseKey() {
+		return 'core';
+	}
+}
+
+```
+
+Database Dispatcher will try to use one of the following settings
+
+1. Using [Settings](https://www.npmjs.com/package/@janiscommerce/settings), with settings in file `/path/to/root/.janiscommercerc.json`:
+
+```json
+{
+	"database": {
+		"core": {
+			"host": "http://my-host-name.org",
+			"type": "mysql",
+			// ...
+		}
+	}
+}
+```
+
+2. Using ENV variables:
+```bash
+DB_CORE_HOST = "http://my-host-name.org";
+DB_CORE_DATABASE = "db-name";
+DB_CORE_USER = "user";
+DB_CORE_PASSWORD = "foo123456";
+```
+
+### Database connection by client injected
+When your `Model` is a Client Model, and the database connection settings are in the client injected, you don't need to configurate the `databaseKey`.
+You can add settings for the fields in the connection, the fields are the following.
+
+For settings the package use [Settings](https://www.npmjs.com/package/@janiscommerce/settings).
+
+| Field | Default value | Description |
+|--|--|--|
+| clients.fields.read.host | dbReadHost | The host for DB Read |
+| clients.fields.read.database | dbReadDatabase | The database name for DB Read |
+| clients.fields.read.user | dbReadUser | The database username for DB Read |
+| clients.fields.read.password | dbReadPassword | The database password for DB Read |
+| clients.fields.read.port | dbReadPort | The database port for DB Read |
+| clients.fields.write.host | dbWriteHost | The host for DB Write |
+| clients.fields.write.database | dbWriteDatabase | The database name for DB Write |
+| clients.fields.write.user | dbWriteUser | The database username for DB Write |
+| clients.fields.write.password | dbWritePassword | The database password for DB Write |
+| clients.fields.write.port | dbWritePort | The database port for DB Write |
+
+**Example of settings:**
+```json
+// .janiscommercerc.json
+{
+	"clients": {
+		"fields": {
+			"read": {
+				"host": "dbReadHost",
+				"database": "dbReadDatabase",
+				"user": "dbReadUser",
+				"password": "dbReadPassword",
+				"port": "dbReadPort"
+			},
+			"write": {
+				"host": "dbWriteHost",
+				"database": "dbWriteDatabase",
+				"user": "dbWriteUser",
+				"password": "dbWritePassword",
+				"port": "dbWritePort"
+			}
+		}
+	}
+}
+```
+
 ## API
 
 ### Controller.get(string) **static**
