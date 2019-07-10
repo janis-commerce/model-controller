@@ -1,6 +1,6 @@
 {
   "name": "@janiscommerce/model-controller",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "The `model-controller` module allows you to get a controller/model class or instance easily",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/janis-commerce/model-controller#readme",
   "dependencies": {
-    "@janiscommerce/database-dispatcher": "^1.2.0",
+    "@janiscommerce/database-dispatcher": "^1.3.1",
     "@janiscommerce/logger": "^1.1.0",
     "@janiscommerce/modules-path": "^1.1.0",
     "@janiscommerce/settings": "^1.0.0"
